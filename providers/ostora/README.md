@@ -51,3 +51,20 @@ A fresh inspection was performed on the uploaded file `v7.0.0(3)(2).apk`.
 This APK does not expose a confirmed, reusable Ostora API key or token as a plain printable DEX string. The inspection confirms that the app has an encrypted-settings component and a runtime `website` setting, but does not establish the exact decrypted value, request-signing algorithm, required API headers, or an authorized public integration contract.
 
 Accordingly, keep the provider disabled. Do not treat generic library constants (`Authorization`, `Bearer`, `User-Agent`) as discovered credentials, and do not infer a secret from the class name `SecureEncryptor`.
+
+
+## Third static inspection (DEX call sites and native library)
+
+The DEX was parsed at the method-reference level, and the packaged native libraries were inspected for exported JNI symbol strings:
+
+- `SecureEncryptor.decrypt` is declared as a native method in the DEX (rather than having a Java bytecode body).
+- The APK packages `libcrypto_jni.so` for `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`.
+- The native library contains JNI symbol names for `SecureEncryptor.encrypt` and `SecureEncryptor.decrypt`, and references OpenSSL EVP AES-256-CBC routines (`EVP_aes_256_cbc`, `EVP_DecryptInit_ex`, `EVP_DecryptUpdate`, `EVP_DecryptFinal_ex`).
+- DEX call-site inspection shows an obfuscated app method reading the `AppSettings` SharedPreferences entry, passing the stored value to the native decrypt method, parsing the result as JSON, and reading a `website` property.
+- The category, main-listing, and matches request-building code paths also instantiate `SecureEncryptor` and read device/app settings before building requests.
+
+**What this does not establish:** the AES key/IV source, the exact plaintext settings JSON, the full request-signing/header algorithm, server-side authorization, or permission to reuse the API. The presence of AES-256-CBC routines does not make the encrypted configuration or API contract public. No decryption key was recovered, and no live endpoint was contacted.
+
+### Updated conclusion
+
+We now have stronger evidence for the configuration flow: a stored `AppSettings` value is decrypted through native JNI code using an AES-256-CBC implementation, then interpreted as JSON with a `website` property. This narrows the technical picture but still does not provide a safe or authorized basis to activate the provider. Keep it disabled until official API documentation/authorization is supplied.
