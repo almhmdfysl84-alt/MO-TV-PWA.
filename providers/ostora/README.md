@@ -32,3 +32,22 @@ Obtain official API documentation or written authorization that specifies:
 - permitted playback URL handling and content rights.
 
 The current MO TV Supabase catalog remains the active source. Do not enable this provider, make requests to the extracted endpoints, or put credentials in browser code until the contract and authorization are verified.
+
+
+## Second static inspection (uploaded APK)
+
+A fresh inspection was performed on the uploaded file `v7.0.0(3)(2).apk`.
+
+- SHA-256: `f1661051c949c2867be4c66d5ac9d4a62d7fd1925f5bb0e6a0912c04a5666d7e`
+- APK size: 10,498,954 bytes.
+- DEX contains the same three API route strings listed above.
+- DEX contains class identifiers `com.t4w.ostora516.utils.SecureEncryptor` and `MainActivity`, plus the `AppSettings` preference name and `website` field label.
+- Generic networking-library strings such as `Authorization`, `Bearer `, and `User-Agent` are present. Static string presence alone does **not** prove that the app uses any particular authorization header or token value for the Ostora API.
+- No literal API-key-shaped value matching the common Firebase `AIza...` format was found in the DEX printable strings. No literal Firebase database hostname was found there either.
+- The Brightcove playback URL template is present, but no complete video playback URL was established.
+
+### Updated conclusion
+
+This APK does not expose a confirmed, reusable Ostora API key or token as a plain printable DEX string. The inspection confirms that the app has an encrypted-settings component and a runtime `website` setting, but does not establish the exact decrypted value, request-signing algorithm, required API headers, or an authorized public integration contract.
+
+Accordingly, keep the provider disabled. Do not treat generic library constants (`Authorization`, `Bearer`, `User-Agent`) as discovered credentials, and do not infer a secret from the class name `SecureEncryptor`.
